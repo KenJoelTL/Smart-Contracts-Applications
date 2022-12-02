@@ -1,4 +1,5 @@
 const dotenv = require('dotenv')
+const fs = require('fs');
 // Get env variable from env file
 dotenv.config()
 
@@ -8,68 +9,17 @@ const Web3 = require("web3")
 const web3 = new Web3(`${process.env.HOST}:${process.env.PORT}/v3/endpoint`)
 
 // interacting with the smart contract
-const abi = [
-  {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "student",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [],
-    "name": "studentNumber",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_studentNumber",
-        "type": "uint256"
-      }
-    ],
-    "name": "setStudentNumber",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function",
-    "payable": true
-  },
-  {
-    "inputs": [],
-    "name": "getStudentNumber",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-]
+// get the abi from the build/contracts/StudentContract.json
+let contractData = null;
+try {
+  const data = fs.readFileSync('../build/contracts/StudentContract.json', 'utf8');
+  contractData = JSON.parse(data)
+  console.log(data);
+} catch (err) {
+  console.error(err);
+}
+
+const abi = contractData["abi"];
 
 const contractAddress = process.env.CONTRACT_ADDRESS
 const senderAddress = process.env.SENDER_ADDRESS
