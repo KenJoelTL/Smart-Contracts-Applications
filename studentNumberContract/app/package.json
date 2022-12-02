@@ -1,0 +1,8 @@
+{
+  "scripts" : {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "web3": "^1.8.1"
+  }
+}

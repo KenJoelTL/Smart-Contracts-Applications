@@ -9,7 +9,8 @@ contract StudentContract {
     studentToStudentNumber [ student ] = 0;
   }
 
-  function setStudentNumber ( uint _studentNumber ) public {
+  function setStudentNumber ( uint _studentNumber ) public payable {
+    require(msg.value == 5400000000000000, "Please send right amount of Ethers");
     studentNumber = _studentNumber;
     studentToStudentNumber [ student ] = _studentNumber;
   }
