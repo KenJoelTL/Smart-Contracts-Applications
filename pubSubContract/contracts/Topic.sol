@@ -6,4 +6,5 @@ struct Topic {
     address[] subscribers;
     mapping(address => string[]) subscriberToMessage;
     mapping(address => uint256) subscriberToBalance;
+    bool isInitialized;
 }

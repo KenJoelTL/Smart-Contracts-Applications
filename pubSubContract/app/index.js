@@ -15,6 +15,59 @@ const abi = [
     "type": "constructor"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "_topicName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "_message",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "_subscriber",
+        "type": "address"
+      }
+    ],
+    "name": "MessageReceived",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "INITIAL_DEPOSIT",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [],
+    "name": "SUBSCRIPTION_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -57,6 +110,42 @@ const abi = [
         "internalType": "string",
         "name": "_topicName",
         "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_message",
+        "type": "string"
+      }
+    ],
+    "name": "publish",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "_subscriber",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_topicName",
+        "type": "string"
+      }
+    ],
+    "name": "unsubscribe",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_topicName",
+        "type": "string"
       }
     ],
     "name": "getTopic",
@@ -75,44 +164,90 @@ const abi = [
     "stateMutability": "view",
     "type": "function",
     "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_topicName",
+        "type": "string"
+      }
+    ],
+    "name": "getSubscribers",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_topicName",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "_subscriber",
+        "type": "address"
+      }
+    ],
+    "name": "getMessageForSubscribers",
+    "outputs": [
+      {
+        "internalType": "string[]",
+        "name": "",
+        "type": "string[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   }
 ]
 
 
 async function main() {
   const contractAddress = process.env.CONTRACT_ADDRESS
-  const senderAddress = process.env.SENDER_ADDRESS
-  const publisherAddress = "0xA26AF11b201035EF8CD0B4950fCfe80591c2617b"
-  const senderIp = "local"
-  const broker = {
-    subscriber: []
-  }
+  const publisherAddress = process.env.PUBLISHER_ADDRESS
+  const subscriberAddress = process.env.SUBSCRIBER_ADDRESS
+  // const senderIp = "local"
+  // const broker = {
+  //   subscriber: []
+  // }
 
   // create a new contract object, providing the ABI and address
   const contract = new web3.eth.Contract(abi, contractAddress)
   const topicName = "games"
+  const message = "Voici mon petit message"
 
-  await getTopic(contract, topicName)
+  // const messageWatcher = await contract.events.MessageReceived()
+  // messageWatcher.on("data", console.log)
+  // const pastEvent = await contract.getPastEvents("MessageReceived")
+  // console.log(pastEvent)
+
+  // contract.events.MessageReceived().on('data', function (event) {
+  //   console.log(event) // same results as the optional callback above
+  // })
+
+  // console.log("...watching")
+  // console.log(messageWatcher)
+  // await getTopic(contract, topicName)
   await advertise(contract, publisherAddress, topicName)
-  await subscribe(contract, senderAddress, topicName)
+  await subscribe(contract, subscriberAddress, topicName)
+  await publish(contract, publisherAddress, topicName, message)
+  await unsubscribe(contract, subscriberAddress, topicName, message)
 
-  broker.subscriber[senderIp] = senderAddress
+  // broker.subscriber[senderIp] = subscriberAddress
+
 
 }
-
-// using contract.methods to set student number's value
-// contract.methods
-//   .subscribe(senderAddress, topicName)
-//   .send({ from: senderAddress, value: 500000000000000000 })
-//   .then(console.log)
-
-// // using contract.methods to get the student number's value
-// contract.methods
-//   .getStudentNumber()
-//   .call()
-//   .then(console.log)
-
-
 
 async function subscribe(contract, subscriberAddress, topicName) {
   await contract.methods
@@ -121,15 +256,32 @@ async function subscribe(contract, subscriberAddress, topicName) {
 }
 
 async function advertise(contract, publisherAddress, topicName) {
-  console.log(contract)
   await contract.methods
     .advertise(publisherAddress, topicName).send({ from: publisherAddress, gas: 99999999, gasPrice: 5000 })
   console.log(`${publisherAddress} ADVERTISED ${topicName}`)
 }
 
+async function publish(contract, publisherAddress, topicName, message) {
+  const result = await contract.methods
+    .publish(topicName, message).send({ from: publisherAddress, gas: 99999999, gasPrice: 5000 })
+  console.log(`${publisherAddress} PUBLISHED:  ${message}`)
+}
+
+async function unsubscribe(contract, subscriberAddress, topicName, message) {
+  const result = await contract.methods
+    .unsubscribe(subscriberAddress, topicName).send({ from: subscriberAddress, gas: 99999999, gasPrice: 5000 })
+  console.log(`${subscriberAddress} UNSUBSCRIBED FROM ${topicName}`)
+}
+
 async function getTopic(contract, topicName) {
   const topic = await contract.methods.getTopic(topicName).call()
   console.log(topic)
+}
+
+function onMessageReceived(messageReceived) {
+  // const topic = await contract.methods.getTopic(topicName).call()
+  console.log("cool!")
+  console.log(messageReceived)
 }
 
 main()

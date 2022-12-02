@@ -29,9 +29,22 @@ contract("PubSubContract", function (accounts) {
     return assert.isTrue(newBalance <= (initialBalance - amount))
   })
 
-  it("it should add a subscriber to a map when a subscribe subscribes", async function () {
+  it("it should send an error when subscribing twice to a Topic", async function () {
     const topicName = "sport"
     const senderAddress = accounts[1]
+    const amount = 500000000000000000
+
+    try {
+      const result = await contract.subscribe(senderAddress, topicName, { from: senderAddress, value: amount })
+      return assert.isFalse(result.receipt.status)
+    } catch (error) {
+      return assert.isTrue(error.stack.includes("You are already subscribed"))
+    }
+  })
+
+  it("it should add a subscriber to a map when a subscribe subscribes", async function () {
+    const topicName = "sport"
+    const senderAddress = accounts[2]
     const amount = 500000000000000000
 
     const result = await contract.subscribe(senderAddress, topicName, { from: senderAddress, value: amount })
@@ -60,7 +73,7 @@ contract("PubSubContract", function (accounts) {
     const result = await contract.advertise(senderAddress, topicName)
     const newTopic = await contract.getTopic.call(topicName)
 
-    console.log(result)
+    // console.log(result)
     // return assert.isTrue(result.receipt.status)
 
     return assert.ownInclude(newTopic, { name: topicName, isInitialized: true })
@@ -74,6 +87,33 @@ contract("PubSubContract", function (accounts) {
     const topic = await contract.getTopic.call(topicName)
     const expectedResult = { name: '', isInitialized: false }
     return assert.ownInclude(topic, expectedResult)
+  })
+
+  // PUBLISH
+  it("it should publish message to a topic when getting a nonexistent Topic", async function () {
+    const topicName = "sport"
+    const publisherAddress = accounts[0]
+    const subscriberAddress = accounts[1]
+    const message = "This is a test message!"
+
+    const messageListCount = (await contract.getMessageForSubscribers.call(topicName, subscriberAddress)).length
+    await contract.publish(topicName, message, { from: publisherAddress })
+    const newMessageListCount = (await contract.getMessageForSubscribers.call(topicName, subscriberAddress)).length
+
+    return assert.equal(newMessageListCount, messageListCount + 1)
+
+  })
+
+  // UNSUBSCRIBE
+  it("it should unsubscribe from subscribed topic", async function () {
+    const topicName = "sport"
+    const subscriberAddress = accounts[1]
+
+    const subListCount = (await contract.getSubscribers.call(topicName)).length
+    await contract.unsubscribe(subscriberAddress, topicName)
+    const newSubListCount = (await contract.getSubscribers.call(topicName)).length
+
+    return assert.equal(newSubListCount, subListCount - 1)
   })
 
 })
