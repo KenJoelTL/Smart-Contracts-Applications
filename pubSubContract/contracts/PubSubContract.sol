@@ -23,6 +23,8 @@ contract PubSubContract {
     }
 
     function advertise(address _publisher, string memory _topicName) public {
+        if (nameToTopic[_topicName].advertisingPublisher[_publisher]) return;
+
         nameToTopic[_topicName].name = _topicName;
         nameToTopic[_topicName].publishers.push(_publisher);
         nameToTopic[_topicName].isInitialized = true;
@@ -46,6 +48,7 @@ contract PubSubContract {
 
         nameToTopic[_topicName].subscriberToBalance[_subscriber] = msg.value;
         nameToTopic[_topicName].subscribers.push(_subscriber);
+        nameToTopic[_topicName].subscriberToIndex[_subscriber] = nameToTopic[_topicName].subscribers.length-1;
     }
 
     function publish(string memory _topicName, string memory _message) public {
@@ -75,20 +78,37 @@ contract PubSubContract {
         ];
         _subscriber.transfer(amountToRepay);
 
-        // Suppression du Subscriber au Topic
+
+        // uint length = nameToTopic[_topicName].subscribers.length;
+        // for ( uint256 _i = 0; _i < nameToTopic[_topicName].subscribers.length; _i++ ) {
+        //     if (_subscriber == nameToTopic[_topicName].subscribers[_i]) {
+        //         address temp = nameToTopic[_topicName].subscribers[_i];
+        //         nameToTopic[_topicName].subscribers[_i] = nameToTopic[_topicName].subscribers[length-1];
+        //         nameToTopic[_topicName].subscribers[length-1] = temp;
+        //         nameToTopic[_topicName].subscribers.pop();
+        //         break;
+        //     }
+        // }
+
+        // Échange de la position du subscriber et du dernier élément
+        uint subIndex = nameToTopic[_topicName].subscriberToIndex[_subscriber];
+        uint lastIndex = nameToTopic[_topicName].subscribers.length-1;
+        address lastSubAddress = nameToTopic[_topicName].subscribers[lastIndex];
+
+        nameToTopic[_topicName].subscribers[subIndex] = lastSubAddress;
+        nameToTopic[_topicName].subscribers[lastIndex] = _subscriber;
+
+        // Mis à jour de l'index dans le mapping du Topic
+        nameToTopic[_topicName].subscriberToIndex[lastSubAddress] = subIndex;
+        
+        // Suppression du Subscriber des mappings du Topic
         delete nameToTopic[_topicName].subscriberToBalance[_subscriber];
         delete nameToTopic[_topicName].subscriberToMessage[_subscriber];
+        delete nameToTopic[_topicName].subscriberToIndex[_subscriber];
 
-        uint length = nameToTopic[_topicName].subscribers.length;
-        for ( uint256 _i = 0; _i < nameToTopic[_topicName].subscribers.length; _i++ ) {
-            if (_subscriber == nameToTopic[_topicName].subscribers[_i]) {
-                address temp = nameToTopic[_topicName].subscribers[_i];
-                nameToTopic[_topicName].subscribers[_i] = nameToTopic[_topicName].subscribers[length-1];
-                nameToTopic[_topicName].subscribers[length-1] = temp;
-                nameToTopic[_topicName].subscribers.pop();
-                break;
-            }
-        }
+        // Suppression du Subscriber de la liste
+        nameToTopic[_topicName].subscribers.pop();
+
     }
 
     function getTopic(string memory _topicName)
