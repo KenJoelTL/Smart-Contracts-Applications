@@ -226,7 +226,7 @@ async function main() {
   // const messageWatcher = await contract.events.MessageReceived()
   // messageWatcher.on("data", onMessageReceived)
 
-  console.log("...watching")
+  // console.log("...watching")
   // await getTopic(contract, topicName)
   await advertise(contract, publisherAddress, topicName)
   // await subscribe(contract, subscriberAddress, topicName)

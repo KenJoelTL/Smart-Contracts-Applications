@@ -17,10 +17,36 @@ then migrate the smart-contract to the desired network, edit the configuration i
 truffle migrate --network development
 ```
 
-## Run the app
+run tests if needed
+```
+truffle test
+```
+
+## 1. Run the StudentContract app
 
 setup first the .env file with the sender and contract address 
 then run the command 
+
+1. Change directory
+```sh
+cd studentNumberContract/app
+```
+2. Run the command 
 ```
 npm run start
+```
+
+## 2. Run the Pub-Sub app
+
+setup first the .env file with the sender and contract address then run the command
+
+1. Change directory
+```sh
+cd pubSubContract/app
+```
+2. Run the command in 3 distinct terminals
+```sh
+1. node broker.js     # listen to the blockain and start a socket server
+2. node subscriber.js # subscribe to the broker via the smart-contract
+3. npm run start      # publish a message to the blockchain
 ```
