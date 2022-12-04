@@ -1,11 +1,7 @@
+const { io } = require("socket.io-client")
 const dotenv = require('dotenv')
-// Get env variable from env file
-dotenv.config()
-
-
 const Web3 = require("web3")
-// set a provider
-const web3 = new Web3(new Web3.providers.WebsocketProvider(`${process.env.HOST}:${process.env.PORT}/v3/endpoint`))
+
 
 // interacting with the smart contract
 const abi = [
@@ -212,61 +208,68 @@ const abi = [
   }
 ]
 
-
-async function main() {
-  const contractAddress = process.env.CONTRACT_ADDRESS
-  const publisherAddress = process.env.PUBLISHER_ADDRESS
-  const subscriberAddress = process.env.SUBSCRIBER_ADDRESS
+async function subscribeToContract(url, contractAddress, subscriberAddress) {
+  // set a provider
+  const web3 = new Web3(new Web3.providers.WebsocketProvider(url))
 
   // create a new contract object, providing the ABI and address
   const contract = new web3.eth.Contract(abi, contractAddress)
   const topicName = "games"
-  const message = "Voici mon petit message pour les sub"
 
-  // const messageWatcher = await contract.events.MessageReceived()
-  // messageWatcher.on("data", onMessageReceived)
-
-  console.log("...watching")
-  // await getTopic(contract, topicName)
-  await advertise(contract, publisherAddress, topicName)
-  // await subscribe(contract, subscriberAddress, topicName)
-  await publish(contract, publisherAddress, topicName, message)
-  // await unsubscribe(contract, subscriberAddress, topicName, message)
+  await unsubscribe(contract, subscriberAddress, topicName)
+  await subscribe(contract, subscriberAddress, topicName)
+  // await unsubscribe(contract, subscriberAddress, topicName)
 
 }
+
+function registerToBroker(brokerEndpoint, subscriberAddress) {
+  const socket = io(brokerEndpoint)
+
+  // receive a message from the server
+  socket.on("Registered", onRegistered)
+
+  // send a message to the server
+  console.log(`Registering to broker at ${brokerEndpoint}`)
+  socket.emit("register", subscriberAddress)
+
+  // receive a message from the server
+  console.log(`Listening to broker at ${brokerEndpoint}`)
+  socket.on("MessageReceived", onMessageReceived)
+
+}
+
 
 async function subscribe(contract, subscriberAddress, topicName) {
   await contract.methods
-    .subscribe(subscriberAddress, topicName).send({ from: subscriberAddress, value: 500000000000000000 })
+    .subscribe(subscriberAddress, topicName)
+    .send({ from: subscriberAddress, value: 500000000000000000 })
   console.log(`${subscriberAddress} SUBSCRIBED TO ${topicName}`)
 }
 
-async function advertise(contract, publisherAddress, topicName) {
+async function unsubscribe(contract, subscriberAddress, topicName) {
   await contract.methods
-    .advertise(publisherAddress, topicName).send({ from: publisherAddress, gas: 99999999, gasPrice: 5000 })
-  console.log(`${publisherAddress} ADVERTISED ${topicName}`)
-}
-
-async function publish(contract, publisherAddress, topicName, message) {
-  const result = await contract.methods
-    .publish(topicName, message).send({ from: publisherAddress, gas: 99999999, gasPrice: 5000 })
-  console.log(`${publisherAddress} PUBLISHED:  ${message}`)
-}
-
-async function unsubscribe(contract, subscriberAddress, topicName, message) {
-  const result = await contract.methods
-    .unsubscribe(subscriberAddress, topicName).send({ from: subscriberAddress, gas: 99999999, gasPrice: 5000 })
+    .unsubscribe(subscriberAddress, topicName)
+    .send({ from: subscriberAddress, gas: 99999999, gasPrice: 5000 })
   console.log(`${subscriberAddress} UNSUBSCRIBED FROM ${topicName}`)
 }
 
-async function getTopic(contract, topicName) {
-  const topic = await contract.methods.getTopic(topicName).call()
-  // console.log(topic)
+function onRegistered(response) {
+  console.log("REGISTRATION STATUS: " + response.status)
 }
 
 function onMessageReceived(messageReceived) {
-  console.log("Message received!")
-  // console.log(messageReceived._message)
+  console.log("messageReceived")
+  console.log(messageReceived)
 }
 
-main()
+
+// Get env variable from env file
+dotenv.config()
+
+const brokerEndpoint = process.env.BROKER_ENDPOINT
+const contractAddress = process.env.CONTRACT_ADDRESS
+const subscriberAddress = process.env.SUBSCRIBER_ADDRESS
+const blockchainEndpoint = `${process.env.HOST}:${process.env.PORT}`
+
+registerToBroker(brokerEndpoint, subscriberAddress)
+subscribeToContract(blockchainEndpoint, contractAddress, subscriberAddress)
