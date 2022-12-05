@@ -224,10 +224,9 @@ function sendToSubscriber(messageReceivedEvent) {
   if (!(result._subscriber && broker.subscribers[result._subscriber])) return
 
   // Send message to client
-  const clientSocket = broker.subscribers[result._subscriber].socket
-  const payload = { topic: result._topic, message: result._message }
-  const socketId = broker.subscribers[result._subscriber].socketId
-  clientSocket.to(socketId).emit('MessageReceived', payload)
+  const payload = { topic: result._topicName, message: result._message }
+  const clientSocketId = broker.subscribers[result._subscriber].socketId
+  broker.io.to(clientSocketId).emit('MessageReceived', payload)
 
   // Log when the message was sent
   console.log(`${new Date().toLocaleString()} | Message sent to ${result._subscriber}`)
@@ -248,14 +247,14 @@ function registerClient(socket, accountAddress) {
   else
     console.log(`${new Date().toLocaleString()} | Registered: ${accountAddress}`)
 
-  socket.to(socket.id).emit('Registered', { status: 'SUCCESS' })
+  broker.io.to(socket.id).emit('Registered', { status: 'SUCCESS' })
 }
 
 function startSocketServer(port) {
-  const io = new Server(port)
+  broker.io = new Server(port)
 
   //attach event handler to client socket on connection
-  io.on("connection", (socket) => {
+  broker.io.on("connection", (socket) => {
     // receive a registering request from the client
     socket.on("register", (accountAddress) => {
       registerClient(socket, accountAddress)
@@ -266,13 +265,13 @@ function startSocketServer(port) {
     })
   })
 
-  io.listen(3000)
+  broker.io.listen(3000)
 }
 
 // Get env variable from env file
 dotenv.config()
 
-const broker = { subscribers: {} }
+const broker = { io: null, subscribers: {} }
 
 const socketServerPort = process.env.BROKER_PORT || 3001
 const blockchainEndpoint = `${process.env.HOST}:${process.env.PORT}`

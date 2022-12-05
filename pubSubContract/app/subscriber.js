@@ -258,7 +258,6 @@ function onRegistered(response) {
 }
 
 function onMessageReceived(messageReceived) {
-  console.log("messageReceived")
   console.log(messageReceived)
 }
 
