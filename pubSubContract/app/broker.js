@@ -224,7 +224,7 @@ function sendToSubscriber(messageReceivedEvent) {
   if (!(result._subscriber && broker.subscribers[result._subscriber])) return
 
   // Send message to client
-  const payload = { topic: result._topicName, message: result._message }
+  const payload = { topic: result.topic, message: result.message }
   const clientSocketId = broker.subscribers[result._subscriber].socketId
   broker.io.to(clientSocketId).emit('MessageReceived', payload)
 
