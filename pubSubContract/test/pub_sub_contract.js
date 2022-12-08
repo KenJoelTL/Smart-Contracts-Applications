@@ -27,7 +27,7 @@ contract("PubSubContract", function (accounts) {
     const topicName = "sport"
 
     const initialBalance = await web3.eth.getBalance(subscriber1)
-    await contract.subscribe(subscriber1, topicName, { from: subscriber1, value: INITIAL_DEPOSIT })
+    await contract.subscribe(topicName, { from: subscriber1, value: INITIAL_DEPOSIT })
     const newBalance = await web3.eth.getBalance(subscriber1)
 
     return assert.isTrue(newBalance <= (initialBalance - INITIAL_DEPOSIT))
@@ -36,7 +36,7 @@ contract("PubSubContract", function (accounts) {
   it("it should send an error when subscribing twice to a Topic", async function () {
     const topicName = "sport"
     try {
-      const result = await contract.subscribe(subscriber1, topicName, { from: subscriber1, value: INITIAL_DEPOSIT })
+      const result = await contract.subscribe(topicName, { from: subscriber1, value: INITIAL_DEPOSIT })
       return assert.isFalse(result.receipt.status)
     } catch (error) {
       return assert.isTrue(error.stack.includes("You are already subscribed"))
@@ -45,7 +45,7 @@ contract("PubSubContract", function (accounts) {
 
   it("it should add a subscriber to a map when a subscribe subscribes", async function () {
     const topicName = "sport"
-    const result = await contract.subscribe(subscriber2, topicName, { from: subscriber2, value: INITIAL_DEPOSIT })
+    const result = await contract.subscribe(topicName, { from: subscriber2, value: INITIAL_DEPOSIT })
 
     return assert.isTrue(result.receipt.status)
   })
@@ -53,7 +53,7 @@ contract("PubSubContract", function (accounts) {
   it("it should fail when a subscriber subscribes to a nonexistent Topic", async function () {
     const topicName = "games"
     try {
-      const result = await contract.subscribe(subscriber1, topicName, { from: subscriber1, value: INITIAL_DEPOSIT })
+      const result = await contract.subscribe(topicName, { from: subscriber1, value: INITIAL_DEPOSIT })
       return assert.isFalse(result.receipt.status)
     } catch (error) {
       return assert.isTrue(error.stack.includes('Please Subscribe to an existing topic'))
@@ -64,7 +64,7 @@ contract("PubSubContract", function (accounts) {
   it("it should add an initialized topic when a advertise a new Topic", async function () {
     const topicName = "weather"
 
-    const result = await contract.advertise(publisher1, topicName)
+    const result = await contract.advertise(topicName, { from: publisher1 })
     const newTopic = await contract.getTopic.call(topicName)
 
     // console.log(result)
@@ -101,7 +101,7 @@ contract("PubSubContract", function (accounts) {
     const topicName = "sport"
 
     const subListCount = (await contract.getSubscribers.call(topicName)).length
-    await contract.unsubscribe(subscriber1, topicName)
+    await contract.unsubscribe(topicName)
     const newSubListCount = (await contract.getSubscribers.call(topicName)).length
 
     return assert.equal(newSubListCount, subListCount - 1)

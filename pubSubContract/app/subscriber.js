@@ -241,14 +241,14 @@ function registerToBroker(brokerEndpoint, subscriberAddress) {
 
 async function subscribe(contract, subscriberAddress, topicName) {
   await contract.methods
-    .subscribe(subscriberAddress, topicName)
+    .subscribe(topicName)
     .send({ from: subscriberAddress, value: 500000000000000000 })
   console.log(`${subscriberAddress} SUBSCRIBED TO ${topicName}`)
 }
 
 async function unsubscribe(contract, subscriberAddress, topicName) {
   await contract.methods
-    .unsubscribe(subscriberAddress, topicName)
+    .unsubscribe(topicName)
     .send({ from: subscriberAddress, gas: 99999999, gasPrice: 5000 })
   console.log(`${subscriberAddress} UNSUBSCRIBED FROM ${topicName}`)
 }

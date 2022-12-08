@@ -26,10 +26,11 @@ contract PubSubContract {
     {
         if (nameToTopic[_topicName].advertisingPublisher[msg.sender]) return;
 
+        address newPublisher = msg.sender;
         nameToTopic[_topicName].name = _topicName;
-        nameToTopic[_topicName].publishers.push(msg.sender);
+        nameToTopic[_topicName].publishers.push(newPublisher);
         nameToTopic[_topicName].isInitialized = true;
-        nameToTopic[_topicName].advertisingPublisher[msg.sender] = true;
+        nameToTopic[_topicName].advertisingPublisher[newPublisher] = true;
     }
 
     function subscribe(string memory _topicName) public payable
@@ -39,9 +40,11 @@ contract PubSubContract {
         require( nameToTopic[_topicName].subscriberToBalance[msg.sender] <= 0, "You are already subscribed" );
         require( msg.value == INITIAL_DEPOSIT, "Please send right amount of Ethers" );
 
-        nameToTopic[_topicName].subscriberToBalance[msg.sender] = msg.value;
-        nameToTopic[_topicName].subscribers.push(msg.sender);
-        nameToTopic[_topicName].subscriberToIndex[msg.sender] = nameToTopic[_topicName].subscribers.length-1;
+        address newSubscriber = msg.sender;
+
+        nameToTopic[_topicName].subscriberToBalance[newSubscriber] = msg.value;
+        nameToTopic[_topicName].subscribers.push(newSubscriber);
+        nameToTopic[_topicName].subscriberToIndex[newSubscriber] = nameToTopic[_topicName].subscribers.length-1;
     }
 
     function publish(string memory _topicName, string memory _message) public 
