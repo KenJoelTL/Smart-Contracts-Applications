@@ -1,4 +1,6 @@
 const dotenv = require('dotenv')
+const fs = require('fs')
+
 // Get env variable from env file
 dotenv.config()
 
@@ -7,23 +9,25 @@ const Web3 = require("web3")
 // set a provider
 const web3 = new Web3(new Web3.providers.WebsocketProvider(`${process.env.HOST}:${process.env.PORT}/v3/endpoint`))
 
-// interacting with the smart contract
-let contractData = null;
-try {
-  const data = fs.readFileSync('../build/contracts/PubSubContract.json', 'utf8');
-  contractData = JSON.parse(data)
-  console.log(data);
-} catch (err) {
-  console.error(err);
+function getABI() {
+  let contractData = null
+  try {
+    const data = fs.readFileSync('../build/contracts/PubSubContract.json', 'utf8')
+    contractData = JSON.parse(data)
+    return contractData["abi"]
+  } catch (err) {
+    console.error(err)
+  }
 }
-
-const abi = contractData["abi"];
-
 
 async function main() {
   const contractAddress = process.env.CONTRACT_ADDRESS
   const publisherAddress = process.env.PUBLISHER_ADDRESS
   const subscriberAddress = process.env.SUBSCRIBER_ADDRESS
+
+
+  // interacting with the smart contract
+  const abi = getABI()
 
   // create a new contract object, providing the ABI and address
   const contract = new web3.eth.Contract(abi, contractAddress)
@@ -50,7 +54,7 @@ async function subscribe(contract, subscriberAddress, topicName) {
 
 async function advertise(contract, publisherAddress, topicName) {
   await contract.methods
-    .advertise(publisherAddress, topicName).send({ from: publisherAddress, gas: 99999999, gasPrice: 5000 })
+    .advertise(topicName).send({ from: publisherAddress, gas: 99999999, gasPrice: 5000 })
   console.log(`${publisherAddress} ADVERTISED ${topicName}`)
 }
 

@@ -1,215 +1,26 @@
 const { Server } = require("socket.io")
 const dotenv = require('dotenv')
 const Web3 = require("web3")
+const fs = require('fs')
 
-// interacting with the smart contract
-const abi = [
-  {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "_message",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "_subscriber",
-        "type": "address"
-      }
-    ],
-    "name": "MessageReceived",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "INITIAL_DEPOSIT",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [],
-    "name": "SUBSCRIPTION_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_publisher",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "advertise",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_subscriber",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "subscribe",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function",
-    "payable": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_message",
-        "type": "string"
-      }
-    ],
-    "name": "publish",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address payable",
-        "name": "_subscriber",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "unsubscribe",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "getTopic",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "internalType": "bool",
-        "name": "isInitialized",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "getSubscribers",
-    "outputs": [
-      {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "_subscriber",
-        "type": "address"
-      }
-    ],
-    "name": "getMessageForSubscribers",
-    "outputs": [
-      {
-        "internalType": "string[]",
-        "name": "",
-        "type": "string[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
+
+function getABI() {
+  let contractData = null
+  try {
+    const data = fs.readFileSync('../build/contracts/PubSubContract.json', 'utf8')
+    contractData = JSON.parse(data)
+    return contractData["abi"]
+  } catch (err) {
+    console.error(err)
   }
-]
+}
 
 async function listenToBlockchain(url, contractAddress) {
   // set a provider for web3
   const web3 = new Web3(new Web3.providers.WebsocketProvider(url))
+
+  // interacting with the smart contract
+  const abi = getABI()
 
   // create a new contract object, providing the ABI and address
   const contract = new web3.eth.Contract(abi, contractAddress)
@@ -221,16 +32,15 @@ async function listenToBlockchain(url, contractAddress) {
 
 function sendToSubscriber(messageReceivedEvent) {
   const result = messageReceivedEvent.returnValues
-  if (!(result._subscriber && broker.subscribers[result._subscriber])) return
+  if (!(result.subscriber && broker.subscribers[result.subscriber])) return
 
   // Send message to client
-  const clientSocket = broker.subscribers[result._subscriber].socket
-  const payload = { topic: result._topic, message: result._message }
-  const socketId = broker.subscribers[result._subscriber].socketId
-  clientSocket.to(socketId).emit('MessageReceived', payload)
+  const payload = { topic: result.topic, message: result.message }
+  const clientSocketId = broker.subscribers[result.subscriber].socketId
+  broker.io.to(clientSocketId).emit('MessageReceived', payload)
 
   // Log when the message was sent
-  console.log(`${new Date().toLocaleString()} | Message sent to ${result._subscriber}`)
+  console.log(`${new Date().toLocaleString()} | Message sent to ${result.subscriber}`)
 }
 
 function registerClient(socket, accountAddress) {
@@ -248,14 +58,14 @@ function registerClient(socket, accountAddress) {
   else
     console.log(`${new Date().toLocaleString()} | Registered: ${accountAddress}`)
 
-  socket.to(socket.id).emit('Registered', { status: 'SUCCESS' })
+  broker.io.to(socket.id).emit('Registered', { status: 'SUCCESS' })
 }
 
 function startSocketServer(port) {
-  const io = new Server(port)
+  broker.io = new Server(port)
 
   //attach event handler to client socket on connection
-  io.on("connection", (socket) => {
+  broker.io.on("connection", (socket) => {
     // receive a registering request from the client
     socket.on("register", (accountAddress) => {
       registerClient(socket, accountAddress)
@@ -266,13 +76,13 @@ function startSocketServer(port) {
     })
   })
 
-  io.listen(3000)
+  broker.io.listen(3000)
 }
 
 // Get env variable from env file
 dotenv.config()
 
-const broker = { subscribers: {} }
+const broker = { io: null, subscribers: {} }
 
 const socketServerPort = process.env.BROKER_PORT || 3001
 const blockchainEndpoint = `${process.env.HOST}:${process.env.PORT}`

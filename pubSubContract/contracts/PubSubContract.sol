@@ -3,13 +3,13 @@ pragma solidity >=0.5.0;
 import "./Topic.sol";
 
 contract PubSubContract {
-     uint256 public constant INITIAL_DEPOSIT = 500000000000000000;
+    uint256 public constant INITIAL_DEPOSIT = 500000000000000000;
     uint256 public constant SUBSCRIPTION_FEE = 5000000000000000;
 
     event MessageReceived(
-        string _topicName,
-        string _message,
-        address _subscriber
+        string topic,
+        string message,
+        address subscriber
     );  
 
     mapping(string => Topic) nameToTopic;
@@ -22,36 +22,33 @@ contract PubSubContract {
         nameToTopic["sport"].isInitialized = true;
     }
 
-    function advertise(address _publisher, string memory _topicName) public {
-        if (nameToTopic[_topicName].advertisingPublisher[_publisher]) return;
-
-        nameToTopic[_topicName].name = _topicName;
-        nameToTopic[_topicName].publishers.push(_publisher);
-        nameToTopic[_topicName].isInitialized = true;
-    }
-
-    function subscribe(address _subscriber, string memory _topicName) public payable
+    function advertise(string memory _topicName) public 
     {
-        require(
-            nameToTopic[_topicName].isInitialized,
-            "Please Subscribe to an existing topic"
-        );
-        // TODO: Déterminer s'il faut ajouter à la somme présente ou lancer un exception
-        require(
-            nameToTopic[_topicName].subscriberToBalance[_subscriber] <= 0,
-            "You are already subscribed"
-        );
-        require(
-            msg.value == INITIAL_DEPOSIT,
-            "Please send right amount of Ethers"
-        );
+        if (nameToTopic[_topicName].advertisingPublisher[msg.sender]) return;
 
-        nameToTopic[_topicName].subscriberToBalance[_subscriber] = msg.value;
-        nameToTopic[_topicName].subscribers.push(_subscriber);
-        nameToTopic[_topicName].subscriberToIndex[_subscriber] = nameToTopic[_topicName].subscribers.length-1;
+        address newPublisher = msg.sender;
+        nameToTopic[_topicName].name = _topicName;
+        nameToTopic[_topicName].publishers.push(newPublisher);
+        nameToTopic[_topicName].isInitialized = true;
+        nameToTopic[_topicName].advertisingPublisher[newPublisher] = true;
     }
 
-    function publish(string memory _topicName, string memory _message) public {
+    function subscribe(string memory _topicName) public payable
+    {
+        require( nameToTopic[_topicName].isInitialized, "Please Subscribe to an existing topic" );
+        // TODO: Déterminer s'il faut ajouter à la somme présente ou lancer un exception
+        require( nameToTopic[_topicName].subscriberToBalance[msg.sender] <= 0, "You are already subscribed" );
+        require( msg.value == INITIAL_DEPOSIT, "Please send right amount of Ethers" );
+
+        address newSubscriber = msg.sender;
+
+        nameToTopic[_topicName].subscriberToBalance[newSubscriber] = msg.value;
+        nameToTopic[_topicName].subscribers.push(newSubscriber);
+        nameToTopic[_topicName].subscriberToIndex[newSubscriber] = nameToTopic[_topicName].subscribers.length-1;
+    }
+
+    function publish(string memory _topicName, string memory _message) public 
+    {
         //TODO: seulement le advertiser qui peux publier pour son topic
         for ( uint256 _i = 0; _i < nameToTopic[_topicName].subscribers.length; _i++ ) {
             // Enregistre le messages des subscribers au topic correspondant
@@ -70,25 +67,18 @@ contract PubSubContract {
         }
     }
 
-    function unsubscribe(address payable _subscriber, string memory _topicName) public
+    function unsubscribe(string memory _topicName) public
     {
+        unsubscribe(payable(msg.sender), _topicName);
+    }
+
+    function unsubscribe(address payable _subscriber, string memory _topicName) private
+    {
+        // require( nameToTopic[_topicName].isInitialized, "Please Unsubscribe to an existing topic" );
+        if(!nameToTopic[_topicName].isInitialized) return ;
         // Transfert le montant restant au subscriber
-        uint256 amountToRepay = nameToTopic[_topicName].subscriberToBalance[
-            _subscriber
-        ];
+        uint256 amountToRepay = nameToTopic[_topicName].subscriberToBalance[ _subscriber ];
         _subscriber.transfer(amountToRepay);
-
-
-        // uint length = nameToTopic[_topicName].subscribers.length;
-        // for ( uint256 _i = 0; _i < nameToTopic[_topicName].subscribers.length; _i++ ) {
-        //     if (_subscriber == nameToTopic[_topicName].subscribers[_i]) {
-        //         address temp = nameToTopic[_topicName].subscribers[_i];
-        //         nameToTopic[_topicName].subscribers[_i] = nameToTopic[_topicName].subscribers[length-1];
-        //         nameToTopic[_topicName].subscribers[length-1] = temp;
-        //         nameToTopic[_topicName].subscribers.pop();
-        //         break;
-        //     }
-        // }
 
         // Échange de la position du subscriber et du dernier élément
         uint subIndex = nameToTopic[_topicName].subscriberToIndex[_subscriber];
@@ -111,9 +101,7 @@ contract PubSubContract {
 
     }
 
-    function getTopic(string memory _topicName)
-        public
-        view
+    function getTopic(string memory _topicName) public view
         returns (string memory name, bool isInitialized)
     {
         return (
@@ -127,11 +115,10 @@ contract PubSubContract {
         return nameToTopic[_topicName].subscribers;
     }
 
-    function getMessageForSubscribers(string memory _topicName, address _subscriber) public view returns (string[] memory)
+    function getMessageForSubscribers(string memory _topicName, address _subscriber) public view 
+        returns (string[] memory)
     {
         return nameToTopic[_topicName].subscriberToMessage[_subscriber];
     }
-    // function getTopicCount() public returns (uint256) {
-    //     return nameToTopic;
-    // }
+
 }
