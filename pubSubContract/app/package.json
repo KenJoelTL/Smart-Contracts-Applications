@@ -3,7 +3,9 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "body-parser": "^1.20.1",
     "dotenv": "^16.0.3",
+    "express": "^4.18.2",
     "socket.io": "^4.5.4",
     "socket.io-client": "^4.5.4",
     "web3": "^1.8.1"
