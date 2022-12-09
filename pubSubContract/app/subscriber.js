@@ -1,216 +1,28 @@
 const { io } = require("socket.io-client")
 const dotenv = require('dotenv')
 const Web3 = require("web3")
+const fs = require('fs')
 
 
-// interacting with the smart contract
-const abi = [
-  {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "_message",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "_subscriber",
-        "type": "address"
-      }
-    ],
-    "name": "MessageReceived",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "INITIAL_DEPOSIT",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [],
-    "name": "SUBSCRIPTION_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_publisher",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "advertise",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_subscriber",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "subscribe",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function",
-    "payable": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_message",
-        "type": "string"
-      }
-    ],
-    "name": "publish",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address payable",
-        "name": "_subscriber",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "unsubscribe",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "getTopic",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "internalType": "bool",
-        "name": "isInitialized",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      }
-    ],
-    "name": "getSubscribers",
-    "outputs": [
-      {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_topicName",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "_subscriber",
-        "type": "address"
-      }
-    ],
-    "name": "getMessageForSubscribers",
-    "outputs": [
-      {
-        "internalType": "string[]",
-        "name": "",
-        "type": "string[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
+
+function getABI() {
+  let contractData = null
+  try {
+    const data = fs.readFileSync('../build/contracts/PubSubContract.json', 'utf8')
+    contractData = JSON.parse(data)
+    return contractData["abi"]
+  } catch (err) {
+    console.error(err)
   }
-]
+}
+
 
 async function subscribeToContract(url, contractAddress, subscriberAddress) {
   // set a provider
   const web3 = new Web3(new Web3.providers.WebsocketProvider(url))
+
+  // interacting with the smart contract
+  const abi = getABI()
 
   // create a new contract object, providing the ABI and address
   const contract = new web3.eth.Contract(abi, contractAddress)
@@ -242,7 +54,7 @@ function registerToBroker(brokerEndpoint, subscriberAddress) {
 async function subscribe(contract, subscriberAddress, topicName) {
   await contract.methods
     .subscribe(topicName)
-    .send({ from: subscriberAddress, value: 500000000000000000 })
+    .send({ from: subscriberAddress, gas: 95000, value: 500000000000000000 })
   console.log(`${subscriberAddress} SUBSCRIBED TO ${topicName}`)
 }
 

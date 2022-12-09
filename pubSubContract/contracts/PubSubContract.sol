@@ -74,6 +74,8 @@ contract PubSubContract {
 
     function unsubscribe(address payable _subscriber, string memory _topicName) private
     {
+        // require( nameToTopic[_topicName].isInitialized, "Please Unsubscribe to an existing topic" );
+        if(!nameToTopic[_topicName].isInitialized) return ;
         // Transfert le montant restant au subscriber
         uint256 amountToRepay = nameToTopic[_topicName].subscriberToBalance[ _subscriber ];
         _subscriber.transfer(amountToRepay);
