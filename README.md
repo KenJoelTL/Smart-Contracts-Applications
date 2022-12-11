@@ -1,4 +1,4 @@
-## StudentNumberContract
+# Smart Contracts Applications
 
 ## Quick start 
 install required libraries
@@ -47,6 +47,8 @@ cd pubSubContract/app
 2. Run the command in 3 distinct terminals
 ```sh
 1. node broker.js     # listen to the blockain and start a socket server
-2. node subscriber.js # subscribe to the broker via the smart-contract
-3. npm run start      # publish a message to the blockchain
+2. node publisher.js  # publish a message to the blockchain
+3. node subscriber.js # subscribe to the broker via the smart-contract
 ```
+
+**Before launching any project, use `npm install` to get all dependecies required to run the applications**
